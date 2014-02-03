@@ -64,7 +64,7 @@ class HTTPClient(object):
         result = urlparse(url)
         query = result.query
         if(query != ''):
-            query = '?' + urllib.quote(query)
+            query = '?' + urllib.quote(query,'/?&=:,+;@$')
         return query
 
     # normalize url
