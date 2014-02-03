@@ -23,6 +23,8 @@ import socket
 import re
 # you may use urllib to encode data appropriately
 import urllib
+from urlparse import urlparse
+import os
 
 def help():
     print "httpclient.py [GET/POST] [URL]\n"
@@ -33,14 +35,69 @@ class HTTPRequest(object):
         self.body = body
 
 class HTTPClient(object):
-    #def get_host_port(self,url):
 
+    # return port
+    def get_host_port(self,url):
+        print url
+        result = urlparse(url)
+        if (result.port is '' ):
+            return 80
+        return int(result.port)
+    
+    # return netloc
+    def get_host_netloc(self,url):
+        result = urlparse(url)
+        netloc = result.netloc
+        if (':' in netloc):
+            pos = netloc.rfind(':')
+            return netloc[0:pos]
+        return netloc
+    
+    # return path
+    def get_host_path(self,url):
+        result = urlparse(url)
+        if (result.path == ''):
+            return '/'
+        else:
+            return result.path
+    # return query
+    def get_url_query(self,url):
+        result = urlparse(url)
+        query = result.query
+        if(query != ''):
+            query = '?' + query
+        return query
+
+    # normalize url
+    def norm_url(self,url):
+        url = url.lower()
+        if (url.find('http://') != 0):
+            url = 'http://' + url
+        return url
+    
+    # return all tokens 
+    def get_tokens(self,url):
+     
+        n_url = self.norm_url(url)
+
+        port = self.get_host_port(n_url)
+        netloc = self.get_host_netloc(n_url)
+        path = self.get_host_path(n_url)
+        query = self.get_url_query(n_url)
+        
+        host = netloc + ':'+ str(port)
+
+        path = urllib.quote(path + query )
+        return port,netloc,path,host
+            
     def connect(self, host, port):
-        # use sockets!
-        return None
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.connect((host,port))
+        return sock
 
     def get_code(self, data):
-        return None
+        tokens = data.split(' ')
+        return tokens[1]
 
     def get_headers(self,data):
         return None
@@ -61,13 +118,46 @@ class HTTPClient(object):
         return str(buffer)
 
     def GET(self, url, args=None):
+        port,netloc,path,host = self.get_tokens(url)
+        sock = self.connect(netloc,port)
+ 
+        header = ( "GET "+ path + 
+                " HTTP/1.1\r\n" +
+                "User-Agent: python\r\n" +
+                "Host: "+ host + "\r\n" +
+                "Accept: */*\r\n" )
+
+        sock.sendall(header)
+        buffer = self.recvall(sock)
+        
         code = 500
-        body = ""
+        body = ''
         return HTTPRequest(code, body)
 
     def POST(self, url, args=None):
+        port,netloc,path,host = self.get_tokens(url)
+        sock = self.connect(netloc,port)
+        
+        if (args is not None) :
+            data = urlencode(args)
+        else: 
+            data = ''
+
+        header = ( "POST "+ path + 
+                " HTTP/1.1\r\n" +
+                "User-Agent: python\r\n" +
+                "Host: "+ host + "\r\n" +
+                "Accept: */*\r\n" +
+                "Content-Length: " + 
+                str(len(data)) + "\r\n" +
+                "Content-Type: " +
+                "application/x-www-form-urlencoded\r\n\r\n" +
+                data )
+        sock.sendall(header)
+        buffer = self.recvall(sock)
+
         code = 500
-        body = ""
+        body = ''
         return HTTPRequest(code, body)
 
     def command(self, url, command="GET", args=None):
@@ -83,6 +173,6 @@ if __name__ == "__main__":
         help()
         sys.exit(1)
     elif (len(sys.argv) == 3):
-        print client.command( sys.argv[1], sys.argv[2] )
+        print client.command( sys.argv[2], sys.argv[1] )
     else:
         print client.command( command, sys.argv[1] )    
