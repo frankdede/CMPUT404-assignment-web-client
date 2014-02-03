@@ -127,9 +127,6 @@ class HTTPClient(object):
                 "Accept:*/*\r\n"+
                 "Connection:close\r\n\r\n")
         sock.sendall(header)
-        print '***********************'
-        print header
-        print '%%%%%%%%%%%%%%%%%%%%%%%'
         bufferData = self.recvall(sock)
         code = self.get_code(bufferData)
         body = self.get_headers(bufferData) + self.get_body(bufferData)
