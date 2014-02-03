@@ -64,12 +64,11 @@ class HTTPClient(object):
         result = urlparse(url)
         query = result.query
         if(query != ''):
-            query = '?' + query
+            query = '?' + urllib.quote(query)
         return query
 
     # normalize url
     def norm_url(self,url):
-        url = url.lower()
         if (url.find('http://') != 0):
             url = 'http://' + url
         return url
@@ -86,7 +85,7 @@ class HTTPClient(object):
         
         host = netloc + ':'+ str(port)
 
-        path = urllib.quote(path + query )
+        path = path + query
         return port,netloc,path,host
             
     def connect(self, host, port):
@@ -124,12 +123,14 @@ class HTTPClient(object):
  
         header = ( "GET "+ path + 
                 " HTTP/1.1\r\n" +
-                "User-Agent: python\r\n" +
-                "Host: "+ netloc + "\r\n" +
-                "Accept: */*\r\n\r\n" )
+                "Host:"+ host + "\r\n" +
+                "Accept:*/*\r\n"+
+                "Connection:close\r\n\r\n")
         sock.sendall(header)
+        print '***********************'
+        print header
+        print '%%%%%%%%%%%%%%%%%%%%%%%'
         bufferData = self.recvall(sock)
-        
         code = self.get_code(bufferData)
         body = self.get_headers(bufferData) + self.get_body(bufferData)
 
@@ -146,12 +147,13 @@ class HTTPClient(object):
 
         header = ( "POST "+ path + 
                 " HTTP/1.1\r\n" +
-                "User-Agent: python\r\n" +
-                "Host: "+ host + "\r\n" +
-                "Accept: */*\r\n" +
-                "Content-Length: " + 
+                "User-Agent:python\r\n" +
+                "Host:"+ host + "\r\n" +
+                "Accept:*/*\r\n" +
+                "Content-Length:" + 
                 str(len(data)) + "\r\n" +
-                "Content-Type: " +
+                "Connection:close\r\n" +
+                "Content-Type:" +
                 "application/x-www-form-urlencoded\r\n\r\n" +
                 data )
 
