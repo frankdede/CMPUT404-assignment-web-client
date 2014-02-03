@@ -38,9 +38,8 @@ class HTTPClient(object):
 
     # return port
     def get_host_port(self,url):
-        print url
         result = urlparse(url)
-        if (result.port is '' ):
+        if (result.port is None ):
             return 80
         return int(result.port)
     
@@ -96,15 +95,17 @@ class HTTPClient(object):
         return sock
 
     def get_code(self, data):
-        tokens = data.split(' ')
-        return tokens[1]
+        code = data.split(' ')[1]
+        return int(code)
 
     def get_headers(self,data):
-        return None
+
+        header = data.split("\r\n\r\n")[0]
+        return header
 
     def get_body(self, data):
-        return None
-
+        body = data.split("\r\n\r\n")[1]
+        return body
     # read everything from the socket
     def recvall(self, sock):
         buffer = bytearray()
@@ -124,14 +125,14 @@ class HTTPClient(object):
         header = ( "GET "+ path + 
                 " HTTP/1.1\r\n" +
                 "User-Agent: python\r\n" +
-                "Host: "+ host + "\r\n" +
-                "Accept: */*\r\n" )
-
+                "Host: "+ netloc + "\r\n" +
+                "Accept: */*\r\n\r\n" )
         sock.sendall(header)
-        buffer = self.recvall(sock)
+        bufferData = self.recvall(sock)
         
-        code = 500
-        body = ''
+        code = self.get_code(bufferData)
+        body = self.get_headers(bufferData) + self.get_body(bufferData)
+
         return HTTPRequest(code, body)
 
     def POST(self, url, args=None):
@@ -139,7 +140,7 @@ class HTTPClient(object):
         sock = self.connect(netloc,port)
         
         if (args is not None) :
-            data = urlencode(args)
+            data = urllib.urlencode(args)
         else: 
             data = ''
 
@@ -153,11 +154,14 @@ class HTTPClient(object):
                 "Content-Type: " +
                 "application/x-www-form-urlencoded\r\n\r\n" +
                 data )
-        sock.sendall(header)
-        buffer = self.recvall(sock)
 
-        code = 500
-        body = ''
+        sock.sendall(header)
+        bufferData = self.recvall(sock)
+
+        code = self.get_code(bufferData)
+        body = self.get_body(bufferData)
+
+        
         return HTTPRequest(code, body)
 
     def command(self, url, command="GET", args=None):
@@ -173,6 +177,6 @@ if __name__ == "__main__":
         help()
         sys.exit(1)
     elif (len(sys.argv) == 3):
-        print client.command( sys.argv[2], sys.argv[1] )
+        print client.command( sys.argv[1], sys.argv[2] )
     else:
         print client.command( command, sys.argv[1] )    
